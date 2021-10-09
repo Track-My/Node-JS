@@ -2,6 +2,12 @@ const db = require('../models');
 const Users = db.users;
 const Devices = db.devices;
 const jwt = require('jsonwebtoken');
+const jwtblacklist = require('jwt-blacklist');
+
+const blacklist = new jwtblacklist.BlackList({
+	daySize: 10000,
+	errorRate: 0.001,
+});
 
 exports.register = async (req, res) => {
 	if (!req.body) {
@@ -97,13 +103,15 @@ exports.authenticate = async (req, res) => {
 
 exports.refresh = async (req, res) => {
 	const refreshToken = req.body.refreshToken
-    if (refreshToken) {
+    if (refreshToken && !(await blacklist.has(refreshToken))) {
         jwt.verify(refreshToken, "yt6r5478rt87god938gf9h34f3", (err, payload) => {
             if (err) {
                 return res.status(403).send({
                     message: 'Forbidden'
                 })
             }
+
+			blacklist.add(req.body.refreshToken);
 
             const { user, device } = payload.data
             const token = jwt.sign({ data: { user, device } }, 'yt6r5478rt87god938gf9h34f3', { expiresIn: '24H' });

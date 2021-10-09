@@ -89,7 +89,30 @@ exports.authenticate = async (req, res) => {
 		device = await user.createDevice(device);
 	}
     
-	const token = jwt.sign({ data: { user, device } }, 'yt6r5478rt87god938gf9h34f3', { expiresIn: '12H' });
+	const token = jwt.sign({ data: { user, device } }, 'yt6r5478rt87god938gf9h34f3', { expiresIn: '24H' });
+	const refreshToken = jwt.sign({ data: { user, device } }, 'yt6r5478rt87god938gf9h34f3', { expiresIn: '30d' });
 	
-    return res.json({ user, device, token });
+    return res.json({ user, device, token, refreshToken });
+};
+
+exports.refresh = async (req, res) => {
+	const refreshToken = req.body.refreshToken
+    if (refreshToken) {
+        jwt.verify(refreshToken, "yt6r5478rt87god938gf9h34f3", (err, payload) => {
+            if (err) {
+                return res.status(403).send({
+                    message: 'Forbidden'
+                })
+            }
+
+            const { user, device } = payload.data
+            const token = jwt.sign({ data: { user, device } }, 'yt6r5478rt87god938gf9h34f3', { expiresIn: '24H' });
+			const refreshToken = jwt.sign({ data: { user, device } }, 'yt6r5478rt87god938gf9h34f3', { expiresIn: '30d' });
+    		return res.json({ token, refreshToken });
+        })
+    } else {
+        return res.status(403).send({
+			message: 'Forbidden'
+		})
+    }
 };
